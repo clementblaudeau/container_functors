@@ -8,7 +8,12 @@ A development of *containers* — pairs `(S, P)` with `S` a shape type and
 to strictly positive endofunctors on `Type`.
 
 The intuition: an element of `⟦c⟧ A` is "an `S`-shape with an `A` at each
-position." Every strictly positive functor on `Type` arises this way.
+position." Every strictly positive functor on `Type` arises this way
+(Abbott–Altenkirch–Ghani, *Containers — constructing strictly positive types*).
+
+The headline theorem of the `Hom` namespace below is that container morphisms
+are in bijection with natural transformations between extensions, witnessed by
+the inverse pair `Hom.toNat` / `Hom.ofNat`.
 -/
 
 universe u v
@@ -17,7 +22,9 @@ universe u v
 Each container determines a strictly positive endofunctor on `Type` via its
 *extension* (see `Container.ext`). -/
 structure Container where
+  /-- The type of shapes. -/
   S : Type u
+  /-- The position family: each shape `s` has positions `P s`. -/
   P : S → Type u
 
 namespace Container
@@ -35,6 +42,7 @@ scoped notation:max (priority := high) "⟦" c "⟧" => ext c
 post-composes `f` with the payload function. -/
 instance {c: Container} : Functor ⟦c⟧ where
   map f := fun ⟨s, k⟩ => ⟨s, fun y => f (k y)⟩
+
 instance {c: Container} : LawfulFunctor ⟦c⟧ where
   map_const := rfl
   id_map    := fun ⟨_, _⟩ => rfl
@@ -85,15 +93,18 @@ def Hom (c d : Container.{u}) : Type u :=
 
 namespace Hom
 
+/-- Composition of container morphisms -/
 def comp {c d e : Container.{u}} : Hom d e → Hom c d → Hom c e :=
   fun ⟨f₂, h₂⟩ ⟨f₁, h₁⟩ =>
     ⟨f₂ ∘ f₁, fun sc pd => h₁ sc (h₂ (f₁ sc) pd)⟩
 
+/-- The natural transformation `⟦c⟧ ⇒ ⟦d⟧` induced by a container morphism -/
 def toNat {c d : Container.{u}} : (Hom c d) → (⟦c⟧ ⇒ ⟦d⟧) :=
   fun ⟨f, hs⟩ =>
   { app _ := fun ⟨s, p⟩ => ⟨f s, p ∘ (hs s)⟩,
     natural := fun _ _ => rfl }
 
+/-- The container morphism extracted from a natural transformation -/
 def ofNat {c d : Container.{u}} : (⟦c⟧ ⇒ ⟦d⟧) → Hom c d :=
   fun {app, natural := _} => ⟨
     fun sc => (app (c.P sc) ⟨sc, id⟩).fst,
@@ -114,6 +125,7 @@ theorem ofNat_toNat {c d : Container.{u}} {n: ⟦c⟧ ⇒ ⟦d⟧} :
   rw [← natural]
   congr
 
+/-- Identity container morphism. -/
 def id (c : Container.{u}) : Hom c c :=
   ⟨fun s => s, fun _ p => p⟩
 
@@ -126,12 +138,15 @@ theorem toNat_comp {c d e : Container.{u}}
   (g : Hom d e) (h : Hom c d) :
   (g.comp h).toNat = NatTrans.comp g.toNat h.toNat := by congr
 
+/-- Identity is a right unit for composition. -/
 theorem comp_id {c d} {h: Hom c d} :
   h.comp (id c) = h := rfl
 
+/-- Identity is a left unit for composition. -/
 theorem id_comp {c d : Container.{u}} {h: Hom d c} :
   (id c).comp h = h := by rfl
 
+/-- Composition of container morphisms is associative. -/
 theorem comp_assoc {c d e f} {h: Hom c d} {g: Hom d e} {k: Hom e f} :
   (k.comp g).comp h = k.comp (g.comp h) := by rfl
 

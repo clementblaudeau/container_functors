@@ -10,10 +10,11 @@ together with `moveLeft`/`moveRight` as container morphisms.
 
 open Container
 
-/-- Zipper for Lists -/
+/-- A list-zipper: a (reversed) left context, a focused element, and a right context. -/
 def Zipper (A: Type) : Type := List A × A × List A
 
-/-- `Zipper` as a container -/
+/-- `Zipper` as a container. Shape `(n, m)` encodes the lengths of the left
+and right contexts; positions split into left / focus / right. -/
 def ZipperC : Container where
   S := ℕ × ℕ
   P := fun ⟨n, m⟩ => Fin n ⊕ Unit ⊕ Fin m
@@ -28,9 +29,12 @@ def Center {n m : ℕ} : Fin n ⊕ Unit ⊕ Fin m := .inr (.inl ())
 @[match_pattern]
 def Right {n m : ℕ} (m₀ : Fin m) : Fin n ⊕ Unit ⊕ Fin m := .inr (.inr m₀)
 
+/-- A zipper with empty contexts focusing on `x`. -/
 def singleton (x : α) : ⟦ZipperC⟧ α :=
   ⟨(0,0), fun | Center => x⟩
 
+/-- Build a zipper from a non-empty list, focusing on the head. Returns `none`
+on the empty list (the zipper requires a focus). -/
 def fromList : List α → Option (⟦ZipperC⟧ α)
 | []   => .none
 | x::l => .some (⟨(0, l.length),
@@ -39,15 +43,19 @@ def fromList : List α → Option (⟦ZipperC⟧ α)
   | Right m  => l[m]
   ⟩)
 
+/-- The focused element. -/
 def focus : ⟦ZipperC⟧ α → α
 | ⟨_, p⟩ => p Center
 
+/-- Flatten a zipper to a list (left context reversed, then focus, then right). -/
 def toList : ⟦ZipperC⟧ α → List α
 | ⟨_, p⟩ =>
   (List.ofFn (Left · |> p)).reverse
   ++ [p Center]
   ++ (List.ofFn (Right · |> p))
 
+/-- Round-trip law: building a zipper from a non-empty list and flattening
+recovers the original list (wrapped in `Option`). -/
 theorem fromList_toList_nonempty {α : Type} {l: List α} :
   l ≠ [] →
   toList <$> (fromList l) = pure l := by
@@ -56,6 +64,7 @@ theorem fromList_toList_nonempty {α : Type} {l: List α} :
   clear h_nonempty
   simp [toList, fromList]
 
+/-- Move-left as a container morphism into `OptionC ∘ ZipperC` -/
 def moveLeftHom : Hom ZipperC (OptionC.comp ZipperC) :=
   ⟨fun
     | (0, _)     => ⟨.none, Empty.elim⟩
@@ -69,12 +78,16 @@ def moveLeftHom : Hom ZipperC (OptionC.comp ZipperC) :=
       | Right m₀ => Fin.cases Center (fun m₁ => Right m₁) m₀
       ⟩
 
+/-- Move-left at the extension level (in `(⟦OptionC⟧ ∘ ⟦ZipperC⟧)`-form). -/
 def moveLeft {A} : ⟦ZipperC⟧ A → (⟦OptionC⟧ ∘ ⟦ZipperC⟧) A :=
   Container.extCompEquiv.toFun ∘ ((Hom.toNat moveLeftHom).app A)
 
+/-- Move-left as a function returning `Option`, after transporting along
+`OptionC.OptionEquiv`. -/
 def moveLeft' {A} : ⟦ZipperC⟧ A → Option (⟦ZipperC⟧ A) :=
   (OptionC.OptionEquiv _).toFun ∘ moveLeft
 
+/-- Move-right as a container morphism -/
 def moveRightHom : Hom ZipperC (OptionC.comp ZipperC) :=
   ⟨fun
     | (_, 0)     => ⟨.none, Empty.elim⟩
@@ -88,13 +101,17 @@ def moveRightHom : Hom ZipperC (OptionC.comp ZipperC) :=
       | Right m₀ => Right (m₀.succ)
       ⟩
 
+/-- Move-right at the extension level. -/
 def moveRight{A} : ⟦ZipperC⟧ A → (⟦OptionC⟧ ∘ ⟦ZipperC⟧) A :=
   Container.extCompEquiv.toFun ∘ ((Hom.toNat moveRightHom).app A)
 
+/-- Move-right as a function returning `Option`. -/
 def moveRight' {A} : ⟦ZipperC⟧ A → Option (⟦ZipperC⟧ A) :=
   (OptionC.OptionEquiv _).toFun ∘ moveRight
 
-def Zipperequiv (A : Type):
+/-- The canonical equivalence between the container extension and the
+named `Zipper` type. -/
+def ZipperEquiv (A : Type):
   ⟦ZipperC⟧ A ≃ Zipper A
   where
   toFun  :=

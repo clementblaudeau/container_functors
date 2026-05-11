@@ -3,21 +3,25 @@ import Mathlib.Logic.Equiv.Basic
 /-!
 # Natural transformations in the category of Types
 
-Defined on a pair `F, G` of endo-functors in the category of Types, a natural
-transformation is :
-- `app`: a point-wise map from the image of `F` to the image of `G`
-- `natural`: a proof that `app` "commutes" with any morphism in Types
+For a pair `F, G` of endofunctors on `Type`, a natural transformation `α : F ⇒ G`
+bundles:
+- `app`: a pointwise map `F A → G A` for every `A`, and
+- `natural`: a proof that `app` commutes with `Functor.map` of any function.
 -/
 
+/-- A natural transformation between endofunctors on `Type`. The `natural` field
+expresses the usual commutative square `(f <$> ·) ∘ app A = app B ∘ (f <$> ·)`. -/
 structure NatTrans (F G : Type v → Type w) [Functor F] [Functor G] where
+   /-- Pointwise component of the natural transformation at type `A`. -/
    app : ∀ A, F A → G A
+   /-- Naturality: `app` commutes with `Functor.map` of every function. -/
    natural : ∀ {A B} (f : A → B) (x : F A), f <$> app A x = app B (f <$> x)
 infixr:25 " ⇒ " => NatTrans
 
 namespace NatTrans
 
-/-- Extensionality: two natural transformations that have the same map
-are equal (by proof irrelevance) -/
+/-- Extensionality for natural transformations: equality reduces to equality of
+the `app` field, since the `natural` field lives in `Prop`. -/
 @[ext]
 theorem ext {F G} [Functor F] [Functor G] {α β : F ⇒ G}
   (h : α.app = β.app) : α = β := by
@@ -39,17 +43,19 @@ def comp {F G H : Type v → Type w} [Functor F] [Functor G] [Functor H]
   app _ := (β.app _) ∘ (α.app _)
   natural _ _ := by simp [← α.natural, ← β.natural]
 
-/-- Composition is associative -/
+/-- Composition is associative. -/
 @[simp]
 theorem comp_assoc {F G H I : Type v → Type w} [Functor F] [Functor G] [Functor H] [Functor I]
   {γ : H ⇒ I} {β : G ⇒ H} {α : F ⇒ G} : (γ.comp β).comp α = γ.comp (β.comp α) := by
   ext ; simp [comp]
 
+/-- The identity is a left unit for composition. -/
 @[simp]
 theorem id_comp {F G : Type v → Type w} [Functor F] [Functor G] {α : G ⇒ F} :
   (id F).comp α = α
   := by rfl
 
+/-- The identity is a right unit for composition. -/
 @[simp]
 theorem comp_id {F G : Type v → Type w} [Functor F] [Functor G] {α : F ⇒ G} :
   α.comp (id F) = α
@@ -57,21 +63,28 @@ theorem comp_id {F G : Type v → Type w} [Functor F] [Functor G] {α : F ⇒ G}
 
 end NatTrans
 
+/-- A natural isomorphism: a pair of natural transformations that compose to the
+identity in both directions. The `left_inv`/`right_inv` fields default to `rfl`,
+which suffices whenever the composites unfold definitionally. -/
 structure NatIso (F G : Type v → Type w) [Functor F] [Functor G] where
+  /-- Forward direction. -/
   toNT  : F ⇒ G
+  /-- Backward direction. -/
   invNT : G ⇒ F
+  /-- `invNT ∘ toNT = id`. -/
   left_inv  : NatTrans.comp invNT toNT = NatTrans.id F := by rfl
+  /-- `toNT ∘ invNT = id`. -/
   right_inv : NatTrans.comp toNT invNT = NatTrans.id G := by rfl
 infixr:25 " ≅ " => NatIso
 
 namespace NatIso
 
-/-- Identity natural transformation. -/
+/-- Identity natural isomorphism. -/
 @[simp] def id (F : Type v → Type w) [Functor F] : F ≅ F where
   toNT  := NatTrans.id F
   invNT := NatTrans.id F
 
-/-- Vertical composition of natural transformations. -/
+/-- Vertical composition of natural isomorphisms. -/
 def comp {F G H : Type v → Type w} [Functor F] [Functor G] [Functor H]
   (β : G ≅ H) (α : F ≅ G) : F ≅ H where
   toNT  := β.toNT.comp α.toNT
@@ -89,6 +102,8 @@ def comp {F G H : Type v → Type w} [Functor F] [Functor G] [Functor H]
       simp [← NatTrans.comp_assoc, α.right_inv]
     simp [β.right_inv]
 
+/-- The pointwise type-level equivalence `F A ≃ G A` induced by a natural
+isomorphism `F ≅ G`. -/
 def toEquiv {F G} [Functor F] [Functor G] (iso : F ≅ G) (A : Type v) : F A ≃ G A where
   toFun   := iso.toNT.app A
   invFun  := iso.invNT.app A

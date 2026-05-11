@@ -7,6 +7,10 @@ import Mathlib.Algebra.Group.Defs
 Worked examples showing how familiar functors and monads are realised
 as container extensions: `Option`, `Except`, `Reader`, `Writer`, `State`,
 and `List`.
+
+For each example we exhibit the container, equip its extension with the
+standard monad instance, and (where the target is a named Lean functor)
+give a natural isomorphism `⟦·⟧ ≅ ·` to confirm the encoding.
 -/
 
 open Container
@@ -26,6 +30,8 @@ instance : Monad ⟦OptionC⟧ where
   | ⟨.none, _⟩, _    => ⟨.none, Empty.elim⟩
   | ⟨.some (), x⟩, f => f (x ())
 
+/-- The container encoding agrees with Lean's `Option`: a natural isomorphism
+`⟦OptionC⟧ ≅ Option`. -/
 def OptionC.OptionNatIso :
   ⟦OptionC⟧ ≅ Option
   where
@@ -51,6 +57,8 @@ def OptionC.OptionNatIso :
     simp [NatTrans.id, NatTrans.comp]
     ext A ( _ | _ ) <;> simp
 
+/-- Pointwise type equivalence `⟦OptionC⟧ A ≃ Option A`, extracted from the
+natural isomorphism. -/
 def OptionC.OptionEquiv (A: Type v) : ⟦OptionC⟧ A ≃ Option A :=
   NatIso.toEquiv OptionC.OptionNatIso A
 
@@ -72,6 +80,8 @@ instance {ε : Type} : MonadExcept ε ⟦ExceptC ε⟧ where
   | ⟨.error e, _⟩, c => c e
   | ⟨.ok (), v⟩  , _ => ⟨.ok (), v⟩
 
+/-- The container encoding agrees with Lean's `Except ε`: a natural isomorphism
+`⟦ExceptC ε⟧ ≅ Except ε`. -/
 def ExceptC.ExceptNatIso {ε} :
   ⟦ExceptC ε⟧ ≅ Except ε
   where
@@ -95,8 +105,8 @@ def ExceptC.ExceptNatIso {ε} :
     simp [NatTrans.id, NatTrans.comp]
     ext A ( _ | _ ) <;> simp
 
-/-- `Reader α` as a container: one shape, with `α`-many positions.
-`⟦ReaderC α⟧ A ≃ α → A`. -/
+/-- `Reader α` as a container: a trivial single shape with `α`-many positions —
+the positions *are* the environment. `⟦ReaderC α⟧ A ≃ α → A`. -/
 def ReaderC (α: Type) : Container := ⟨Unit, fun _ => α⟩
 
 /-- The reader monad transcribed to the container form. -/
@@ -118,8 +128,8 @@ instance {γ : Type} : LawfulMonad ⟦ReaderC γ⟧ := LawfulMonad.mk' _
   (bind_assoc := fun ⟨_, hx⟩ f g => by simp [bind] ; congr)
 
 
-/-- `Writer w` as a container: shape is the value being written, one position
-holds the payload. `⟦WriterC w⟧ A ≃ w × A`. -/
+/-- `Writer w` as a container: shape is the value being written (the log),
+position is `Unit` (a single payload slot). `⟦WriterC w⟧ A ≃ w × A`. -/
 def WriterC (w: Type) : Container := ⟨w, fun _ => Unit⟩
 
 /-- Write a value, returning unit. -/
@@ -134,6 +144,8 @@ instance {w : Type} [Monoid w] : Monad ⟦WriterC w⟧ where
     refine ⟨lx * lf, hf⟩
 
 
+/-- Lawful-monad proofs for `⟦WriterC w⟧`. `bind_assoc` is where the monoid
+associativity is consumed. -/
 instance {w : Type} [Monoid w] : LawfulMonad ⟦WriterC w⟧ := LawfulMonad.mk' _
   (id_map := fun ⟨ _, _⟩ => by simp [Functor.map, WriterC] at *)
   (map_const := by simp [Functor.mapConst, Functor.map])
