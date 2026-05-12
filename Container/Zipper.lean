@@ -22,10 +22,14 @@ def ZipperC : Container where
 namespace ZipperC
 variable {α : Type}
 
+/-- Position to the left of focus. `@[match_pattern]` lets `Left`/`Center`/`Right`
+appear in `match` arms without unfolding their `Sum`-shaped definitions. -/
 @[match_pattern]
 def Left {n m : ℕ} (n₀ : Fin n) : Fin n ⊕ Unit ⊕ Fin m := .inl n₀
+/-- The focus position. -/
 @[match_pattern]
 def Center {n m : ℕ} : Fin n ⊕ Unit ⊕ Fin m := .inr (.inl ())
+/-- Position to the right of focus. -/
 @[match_pattern]
 def Right {n m : ℕ} (m₀ : Fin m) : Fin n ⊕ Unit ⊕ Fin m := .inr (.inr m₀)
 

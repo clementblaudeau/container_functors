@@ -16,6 +16,8 @@ structure NatTrans (F G : Type v → Type w) [Functor F] [Functor G] where
    app : ∀ A, F A → G A
    /-- Naturality: `app` commutes with `Functor.map` of every function. -/
    natural : ∀ {A B} (f : A → B) (x : F A), f <$> app A x = app B (f <$> x)
+
+/-- Notation for `NatTrans F G`: `F ⇒ G`. -/
 infixr:25 " ⇒ " => NatTrans
 
 namespace NatTrans
@@ -75,6 +77,8 @@ structure NatIso (F G : Type v → Type w) [Functor F] [Functor G] where
   left_inv  : NatTrans.comp invNT toNT = NatTrans.id F := by rfl
   /-- `toNT ∘ invNT = id`. -/
   right_inv : NatTrans.comp toNT invNT = NatTrans.id G := by rfl
+
+/-- Notation for `NatIso F G`: `F ≅ G`. -/
 infixr:25 " ≅ " => NatIso
 
 namespace NatIso

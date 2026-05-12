@@ -127,6 +127,8 @@ instance {γ : Type} : LawfulMonad ⟦ReaderC γ⟧ := LawfulMonad.mk' _
   (map_const := by simp [Functor.mapConst, Functor.map])
   (bind_assoc := fun ⟨_, hx⟩ f g => by simp [bind] ; congr)
 
+/-- The container encoding agrees with Lean's `ReaderM α = α → ·`: a natural
+isomorphism `⟦ReaderC α⟧ ≅ ReaderM α`. -/
 def ReaderC.ReaderNatIso {α : Type} : ⟦ReaderC α⟧ ≅ ReaderM α
   where
   toNT := { app A := Sigma.snd
