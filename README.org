@@ -90,20 +90,16 @@ showed them equivalent to their normal definitions.
   def OptionC : Container where
     S := Option Unit
     P := fun | .some () => Unit | .none => Empty
-
   def OptionC.OptionNatIso : ⟦OptionC⟧ ≅ Option := ...
 
   /-- `Except` as a container -/
   def ExceptC (ε : Type) : Container where
     S := Except ε Unit
     P := fun | .ok () => Unit | .error _ => Empty
-
   def ExceptC.ExceptNatIso {ε} : ⟦ExceptC ε⟧ ≅ Except ε := ...
-
 
   /-- `Reader α` as a container -/
   def ReaderC (α: Type) : Container := ⟨Unit, fun _ => α⟩
-
   def ReaderC.ReaderNatIso {α : Type} : ⟦ReaderC α⟧ ≅ ReaderM α := ...
 #+end_src
 
