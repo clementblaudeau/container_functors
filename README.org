@@ -1,0 +1,160 @@
+#+TITLE: Containers-functors in Lean
+#+AUTHOR: Clement Blaudeau
+
+A formalization of /containers/-functors in Lean. The overview and the lean code
+was hand-written. The documentation comments and some other parts of the Readme
+were AI-assisted.
+
+* Overview/Backstory
+
+I was trying to implement [[https://dl.acm.org/doi/10.1145/2578854.2503791][extensible effects]] in Lean as an exercise.  But there
+is a catch: Lean's positivity checker rejects the usual =Free= monad definition.
+Typically, in Haskell it would be:
+
+#+begin_src haskell
+data Free f a = Pure a | Free (f (Free f a))
+#+end_src
+
+This would not pass Lean's positivity checker, as Lean cannot guarantee the
+functor ~f~ uses its argument only in positive positions. Such functors are called
+"strictly positive" or sometimes "polynomial". Knowing that the =Freer= monad
+construction did not have this problem, I should have forgotten about that and
+moved on, but I heard about /containers/ and got interested.
+
+** Container functors
+
+Strictly positive functors are exactly the ones that can be represented as a
+"container", aka a pair of a type for shapes ~(S: Type)~ and a map from shapes to
+types ~(P : S → Type)~. The shape "indicates" how many cases there are, and for
+each, the map "enumerates" the positions where the data goes.
+
+#+begin_src lean4
+  structure Container where
+    /-- The type of shapes. -/
+    S : Type u
+    /-- The position family: each shape `s` has positions `P s`. -/
+    P : S → Type u
+#+end_src
+
+A container ~c~ can be turned into a functor by a process called /extension/,
+usually noted ~⟦c⟧~, where ~⟦c⟧ α~ is the dependent pair of a shape ~(s : S)~ and
+the function type ~P s → α~.
+
+#+begin_src lean4
+  def ext : (c: Container.{u}) → Type v → Type (max u v) :=
+    fun ⟨S, P⟩ A => (s : S) × (P s → A)
+  notation "⟦" c "⟧" => ext c
+#+end_src
+
+In other words, a container can be turned into a functor that takes a type ~α~ and
+turns it into a (dependent) pair of (1) a shape ~s~ and (2) a continuation that,
+given a value of type ~P s~ returns a value of type ~α~.  The shapes can be used to
+encode "cases" (sum-type constructions) and extra information (product-type
+constructions). Indeed, the return type is a dependent pair, so anything that
+does not directly depend on ~α~ can be put in ~s~.
+
+Structurally, it is obvious that ~α~ only appears in a strictly positive position, so
+functors that are extensions of containers are strictly positive. The converse
+is harder to see.
+
+** The Free Monad
+
+Using those, I could define the =Free= monad, taking as input a container rather
+than a functor. I can show it's actually a (lawful) monad.
+
+#+begin_src lean4
+  inductive Free (c : Container.{u}) (α : Type v) : Type (max u v) where
+  | pure   : α → Free c α
+  | impure : (s : c.S) → (c.P s → (Free c α)) → Free c α
+  instance {c : Container} : Monad (Free c) where ...
+  instance {c : Container} : LawfulMonad (Free c) where ...
+#+end_src
+
+Quite interestingly, I also showed it somewhat equivalent to the original
+Haskell definition:
+
+#+begin_src lean4
+  /-- `Free c α` is the fixpoint of the polynomial `α ⊕ ⟦c⟧ -`. -/
+  def equiv (c : Container.{u}) (α : Type v) :
+    Free c α ≃ α ⊕ ⟦c⟧ (Free c α)
+    where ...
+#+end_src
+
+** Natural transformations and other examples
+
+Along the way, I also went on and defined usual functors as containers, and
+showed them equivalent to their normal definitions.
+
+#+begin_src lean4
+  /-- `Option` as a container -/
+  def OptionC : Container where
+    S := Option Unit
+    P := fun | .some () => Unit | .none => Empty
+
+  def OptionC.OptionNatIso : ⟦OptionC⟧ ≅ Option := ...
+
+  /-- `Except` as a container -/
+  def ExceptC (ε : Type) : Container where
+    S := Except ε Unit
+    P := fun | .ok () => Unit | .error _ => Empty
+
+  def ExceptC.ExceptNatIso {ε} : ⟦ExceptC ε⟧ ≅ Except ε := ...
+
+
+  /-- `Reader α` as a container -/
+  def ReaderC (α: Type) : Container := ⟨Unit, fun _ => α⟩
+
+  def ReaderC.ReaderNatIso {α : Type} : ⟦ReaderC α⟧ ≅ ReaderM α := ...
+#+end_src
+
+I did that by introducing a notion of /natural transformation/ on functors, and
+extended it to a notion of natural isomorphism:
+
+#+begin_src lean4
+  /-- A natural transformation between endofunctors on `Type`. The `natural` field
+  expresses the usual commutative square `(f <$> ·) ∘ app A = app B ∘ (f <$> ·)`. -/
+  structure NatTrans (F G : Type v → Type w) [Functor F] [Functor G] where
+     /-- Pointwise component of the natural transformation at type `A`. -/
+     app : ∀ A, F A → G A
+     /-- Naturality: `app` commutes with `Functor.map` of every function. -/
+     natural : ∀ {A B} (f : A → B) (x : F A), f <$> app A x = app B (f <$> x)
+  infixr:25 " ⇒ " => NatTrans
+
+  /-- A natural isomorphism: a pair of natural transformations that compose to the
+  identity in both directions. -/
+  structure NatIso (F G : Type v → Type w) [Functor F] [Functor G] where
+    toNT  : F ⇒ G
+    invNT : G ⇒ F
+    /-- `invNT ∘ toNT = id`. -/
+    left_inv  : NatTrans.comp invNT toNT = NatTrans.id F := by rfl
+    /-- `toNT ∘ invNT = id`. -/
+    right_inv : NatTrans.comp toNT invNT = NatTrans.id G := by rfl
+  infixr:25 " ≅ " => NatIso
+#+end_src
+
+I showed that morphisms on containers define natural transformations on the
+corresponding functors. At that point I was satisfied and could move on to the
+=Freer= monad.
+
+* Repo structure
+
+|--------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Module             | Description                                                                                                                                                                 |
+|--------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| =Container.NatTrans= | Plain natural transformations and natural isomorphisms between endofunctors on ~Type~ (~F ⇒ G~, ~F ≅ G~).                                                                         |
+| =Container.Basic=    | The ~Container~ structure, its extension ~⟦c⟧~, container composition / product, and the ~Hom ≃ NatTrans~ theorem.                                                                |
+| =Container.Free=     | The free monad ~Free c~ on a container, i.e. the initial algebra of ~α ⊕ ⟦c⟧ -~.                                                                                                |
+| =Container.Examples= | Classic functors as containers: ~OptionC~, ~ExceptC~, ~ReaderC~, ~WriterC~, ~StateC~, ~ListC~ — with monad instances and (where applicable) natural isos to the standard Lean functors. |
+| =Container.Zipper=   | A list-zipper as a container: shape ~(n, m)~ for context lengths, positions split as ~Fin n ⊕ Unit ⊕ Fin m~. ~moveLeft~ / ~moveRight~ are defined as container morphisms.           |
+|--------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+
+* References
+
+- Abbott, Altenkirch, Ghani — [[https://doi.org/10.1016/j.tcs.2005.06.002][Containers: Constructing Strictly Positive Types]] (2005)
+- Kiselyov, Ishii — [[https://okmij.org/ftp/Haskell/extensible/more.pdf][Freer Monads, More Extensible Effects]] (2015)
+- Kiselyov, Sabry, Swords — [[https://dl.acm.org/doi/10.1145/2578854.2503791][Extensible Effects: An Alternative to Monad Transformers]] (2013)
+
+* AI Disclosure
+
+I used Claude Opus 4.7 to review the style, add documentation comments, and
+suggest organizational changes. The code was hand-written.
