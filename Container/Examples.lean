@@ -1,6 +1,8 @@
 import Container.Basic
 import Mathlib.Algebra.Group.Defs
 
+universe v
+
 /-!
 # Classic functors as containers
 
@@ -29,6 +31,18 @@ instance : Monad ⟦OptionC⟧ where
   bind := fun
   | ⟨.none, _⟩, _    => ⟨.none, Empty.elim⟩
   | ⟨.some (), x⟩, f => f (x ())
+
+instance : LawfulMonad ⟦OptionC⟧ := LawfulMonad.mk' _
+  (id_map := fun ⟨s, _⟩ => by rcases s with _ | _ <;> rfl)
+  (map_const := by simp [Functor.mapConst, Functor.map])
+  (pure_bind := fun _ _ => rfl)
+  (bind_assoc := fun ⟨s, _⟩ _ _ => by rcases s with _ | _ <;> rfl)
+  (bind_pure_comp := fun _ ⟨s, _⟩ => by
+    match s with
+    | .none =>
+      simp only [Bind.bind, Functor.map] ; congr
+      funext e; cases e
+    | .some () => rfl)
 
 /-- The container encoding agrees with Lean's `Option`: a natural isomorphism
 `⟦OptionC⟧ ≅ Option`. -/
@@ -79,6 +93,18 @@ instance {ε : Type} : MonadExcept ε ⟦ExceptC ε⟧ where
   tryCatch := fun
   | ⟨.error e, _⟩, c => c e
   | ⟨.ok (), v⟩  , _ => ⟨.ok (), v⟩
+
+instance {ε : Type} : LawfulMonad ⟦ExceptC ε⟧ := LawfulMonad.mk' _
+  (id_map := fun ⟨s, _⟩ => by rcases s with _ | _ <;> rfl)
+  (map_const := by simp [Functor.mapConst, Functor.map])
+  (pure_bind := fun _ _ => rfl)
+  (bind_assoc := fun ⟨s, _⟩ _ _ => by rcases s with _ | _ <;> rfl)
+  (bind_pure_comp := fun _ ⟨s, _⟩ => by
+    match s with
+    | .error _ =>
+      simp only [Bind.bind, Functor.map] ; congr
+      funext e; cases e
+    | .ok () => rfl)
 
 /-- The container encoding agrees with Lean's `Except ε`: a natural isomorphism
 `⟦ExceptC ε⟧ ≅ Except ε`. -/

@@ -149,6 +149,9 @@ corresponding functors. At that point I was satisfied and could move on to the
 - Abbott, Altenkirch, Ghani — [[https://doi.org/10.1016/j.tcs.2005.06.002][Containers: Constructing Strictly Positive Types]] (2005)
 - Kiselyov, Ishii — [[https://okmij.org/ftp/Haskell/extensible/more.pdf][Freer Monads, More Extensible Effects]] (2015)
 - Kiselyov, Sabry, Swords — [[https://dl.acm.org/doi/10.1145/2578854.2503791][Extensible Effects: An Alternative to Monad Transformers]] (2013)
+- Mathlib has a polynomial-functor library at =Mathlib/Data/PFunctor/{Univariate,
+  Multivariate}/{Basic,M,W}.lean= which overlaps with some part of this
+  development.
 
 * AI Disclosure
 

@@ -1,5 +1,7 @@
 import Mathlib.Logic.Equiv.Basic
 
+universe v w
+
 /-!
 # Natural transformations in the category of Types
 

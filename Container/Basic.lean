@@ -89,7 +89,7 @@ The contravariance on positions is what makes the induced family
 `⟦c⟧ A → ⟦d⟧ A` natural in `A`: data isn't created or inspected,
 only re-routed. -/
 def Hom (c d : Container.{u}) : Type u :=
-  (f : c.S → d.S) × (∀ (sc: c.S), (d.P (f sc)) → c.P sc)
+  (f : c.S → d.S) × (∀ (sc : c.S), d.P (f sc) → c.P sc)
 
 namespace Hom
 
@@ -110,13 +110,13 @@ def ofNat {c d : Container.{u}} : (⟦c⟧ ⇒ ⟦d⟧) → Hom c d :=
     fun sc => (app (c.P sc) ⟨sc, id⟩).fst,
     fun sc x => (app (c.P sc) ⟨sc, id⟩).snd x⟩
 
-theorem toNat_ofNat {c d : Container.{u}} (h: Hom c d) :
-  ofNat (h.toNat) = h := by
-  obtain ⟨f, Ps⟩ := h
+theorem toNat_ofNat {c d : Container.{u}} (h : Hom c d) :
+  ofNat h.toNat = h := by
+  obtain ⟨f, hs⟩ := h
   simp [ofNat, toNat]
 
-theorem ofNat_toNat {c d : Container.{u}} {n: ⟦c⟧ ⇒ ⟦d⟧} :
-  (ofNat n).toNat = n := by
+theorem ofNat_toNat {c d : Container.{u}} (n : ⟦c⟧ ⇒ ⟦d⟧) :
+    (ofNat n).toNat = n := by
   obtain ⟨app, natural⟩ := n
   simp [ofNat, toNat]
   funext A ⟨sc, k⟩
@@ -125,30 +125,42 @@ theorem ofNat_toNat {c d : Container.{u}} {n: ⟦c⟧ ⇒ ⟦d⟧} :
   rw [← natural]
   congr
 
+/-- Container morphisms `c → d` are in bijection with natural transformations
+`⟦c⟧ ⇒ ⟦d⟧`, witnessed by `toNat`/`ofNat`. -/
+def equivNat {c d : Container.{u}} : Hom c d ≃ (⟦c⟧ ⇒ ⟦d⟧) where
+  toFun     := toNat
+  invFun    := ofNat
+  left_inv  := toNat_ofNat
+  right_inv := ofNat_toNat
+
 /-- Identity container morphism. -/
 def id (c : Container.{u}) : Hom c c :=
   ⟨fun s => s, fun _ p => p⟩
 
 /-- `Hom.toNat` preserves identity. -/
 theorem toNat_id (c : Container.{u}) :
-  (id c).toNat = NatTrans.id ⟦c⟧ := by congr
+  (id c).toNat = NatTrans.id ⟦c⟧ := rfl
 
 /-- `Hom.toNat` preserves composition. -/
 theorem toNat_comp {c d e : Container.{u}}
   (g : Hom d e) (h : Hom c d) :
-  (g.comp h).toNat = NatTrans.comp g.toNat h.toNat := by congr
+  (g.comp h).toNat = NatTrans.comp g.toNat h.toNat := rfl
 
 /-- Identity is a right unit for composition. -/
-theorem comp_id {c d} {h: Hom c d} :
+@[simp]
+theorem comp_id {c d : Container.{u}} (h : Hom c d) :
   h.comp (id c) = h := rfl
 
 /-- Identity is a left unit for composition. -/
-theorem id_comp {c d : Container.{u}} {h: Hom d c} :
-  (id c).comp h = h := by rfl
+@[simp]
+theorem id_comp {c d : Container.{u}} (h : Hom d c) :
+  (id c).comp h = h := rfl
 
 /-- Composition of container morphisms is associative. -/
-theorem comp_assoc {c d e f} {h: Hom c d} {g: Hom d e} {k: Hom e f} :
-  (k.comp g).comp h = k.comp (g.comp h) := by rfl
+@[simp]
+theorem comp_assoc {c d e f : Container.{u}}
+  (h : Hom c d) (g : Hom d e) (k : Hom e f) :
+  (k.comp g).comp h = k.comp (g.comp h) := rfl
 
 end Hom
 

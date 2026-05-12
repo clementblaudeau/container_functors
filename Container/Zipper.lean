@@ -106,7 +106,7 @@ def moveRightHom : Hom ZipperC (OptionC.comp ZipperC) :=
       ⟩
 
 /-- Move-right at the extension level. -/
-def moveRight{A} : ⟦ZipperC⟧ A → (⟦OptionC⟧ ∘ ⟦ZipperC⟧) A :=
+def moveRight {A} : ⟦ZipperC⟧ A → (⟦OptionC⟧ ∘ ⟦ZipperC⟧) A :=
   Container.extCompEquiv.toFun ∘ ((Hom.toNat moveRightHom).app A)
 
 /-- Move-right as a function returning `Option`. -/
