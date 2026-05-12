@@ -127,6 +127,12 @@ instance {γ : Type} : LawfulMonad ⟦ReaderC γ⟧ := LawfulMonad.mk' _
   (map_const := by simp [Functor.mapConst, Functor.map])
   (bind_assoc := fun ⟨_, hx⟩ f g => by simp [bind] ; congr)
 
+def ReaderC.ReaderNatIso {α : Type} : ⟦ReaderC α⟧ ≅ ReaderM α
+  where
+  toNT := { app A := Sigma.snd
+            natural f x := rfl }
+  invNT := { app A x := ⟨(), x⟩
+             natural f x := rfl }
 
 /-- `Writer w` as a container: shape is the value being written (the log),
 position is `Unit` (a single payload slot). `⟦WriterC w⟧ A ≃ w × A`. -/
@@ -142,7 +148,6 @@ instance {w : Type} [Monoid w] : Monad ⟦WriterC w⟧ where
   bind := fun ⟨lx, hx⟩ f => by
     have ⟨lf, hf⟩ := (f (hx ()))
     refine ⟨lx * lf, hf⟩
-
 
 /-- Lawful-monad proofs for `⟦WriterC w⟧`. `bind_assoc` is where the monoid
 associativity is consumed. -/

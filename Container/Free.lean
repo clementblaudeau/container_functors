@@ -24,7 +24,7 @@ inductive Free (c : Container.{u}) (α : Type v) : Type (max u v) where
 namespace Free
 
 /-- `Free c α` is the fixpoint of the polynomial `α ⊕ ⟦c⟧ -`. -/
-def equiv (c: Container.{u}) (α : Type v) :
+def equiv (c : Container.{u}) (α : Type v) :
   Free c α ≃ α ⊕ ⟦c⟧ (Free c α)
   where
   toFun     := (Free.casesOn · .inl (fun s k => .inr ⟨s, k⟩))
@@ -34,7 +34,7 @@ def equiv (c: Container.{u}) (α : Type v) :
 
 /-- Functorial action on `Free c`: apply `f` at every leaf,
 recursing through positions of every `impure` layer. -/
-def map {c: Container.{u}} {α β : Type v} (f : α → β) (x : Free c α) : (Free c β) :=
+def map {c : Container.{u}} {α β : Type v} (f : α → β) (x : Free c α) : (Free c β) :=
   match x with
   | .pure v => .pure (f v)
   | .impure s k => .impure s (k · |> map f)
@@ -44,7 +44,7 @@ instance {c: Container.{u}} : Functor (Free c) where
 
 /-- Monadic bind on `Free c`: substitute `f` for each leaf, leaving the
 `c`-structure untouched. -/
-def bind {c: Container.{u}} {α β : Type v} (x : Free c α) (f : α → Free c β) : (Free c β) :=
+def bind {c : Container.{u}} {α β : Type v} (x : Free c α) (f : α → Free c β) : (Free c β) :=
   match x with
   | .pure v => f v
   | .impure s k => .impure s (fun ps => bind (k ps) f)
